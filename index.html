@@ -5,49 +5,34 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroSmart Analiz</title>
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f1f5f9; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
         header { background-color: #0f172a; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; }
         h1 { margin: 0; font-size: 22px; color: #4ade80; }
         h1 span { color: white; font-weight: 300; }
-        .subtitle { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-        #hava-durumu { background-color: #1e293b; padding: 8px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 14px; }
-        
+        #hava-durumu { background-color: #1e293b; padding: 8px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 14px; min-width: 200px; text-align: center; }
         .container { display: flex; flex: 1; padding: 20px; gap: 20px; box-sizing: border-box; overflow: hidden; }
-        
         .sidebar { width: 25%; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
         .sidebar h2 { margin-top: 0; border-bottom: 2px solid #22c55e; padding-bottom: 10px; color: #1e293b; font-size: 18px; }
         #tarla-listesi { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
-        
         .tarla-item { padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
-        .tarla-item:hover, .tarla-item.active { border-color: #4ade80; background: #f0fdf4; }
-        .tarla-title { font-weight: bold; color: #1e293b; font-size: 15px; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tarla-item.active { border-color: #4ade80; background: #f0fdf4; box-shadow: inset 0 0 0 1px #4ade80; }
+        .tarla-title { font-weight: bold; color: #1e293b; font-size: 15px; margin-bottom: 5px; }
         .tarla-desc { font-size: 12px; color: #64748b; }
-        
         .map-container { width: 75%; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; position: relative; display: flex; flex-direction: column; }
-        #map { flex: 1; width: 100%; border-radius: 8px; z-index: 1; }
-        
-        .legend { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; font-size: 12px; line-height: 18px; color: #334155; }
-        .legend h4 { margin: 0 0 5px 0; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;}
+        #map { flex: 1; width: 100%; border-radius: 8px; z-index: 1; background: #e5e7eb; }
+        .legend { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; font-size: 12px; color: #334155; }
         .legend-item { display: flex; align-items: center; margin-bottom: 3px; }
         .color-box { width: 14px; height: 14px; margin-right: 8px; border-radius: 3px; display: inline-block;}
-
         @media (max-width: 768px) {
-            header { flex-direction: column; align-items: flex-start; padding: 12px 15px; gap: 10px; }
-            #hava-durumu { width: 100%; text-align: center; box-sizing: border-box; font-size: 13px; }
-            .container { flex-direction: column; padding: 10px; gap: 10px; }
-            .sidebar { width: 100%; padding: 10px; flex: none; height: auto; box-sizing: border-box; }
-            .sidebar h2 { font-size: 16px; margin-bottom: 10px; padding-bottom: 5px; }
-            #tarla-listesi { display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 10px; padding-bottom: 5px; }
-            .tarla-item { min-width: 150px; flex: 0 0 auto; margin-bottom: 0; }
-            .map-container { width: 100%; padding: 5px; box-sizing: border-box; flex: 1; }
-            .legend { font-size: 10px; padding: 6px; }
-            .legend h4 { font-size: 11px; margin-bottom: 3px; padding-bottom: 3px; }
-            .color-box { width: 10px; height: 10px; margin-right: 5px; }
+            header { flex-direction: column; align-items: flex-start; padding: 10px; gap: 8px; }
+            #hava-durumu { width: 100%; font-size: 12px; }
+            .container { flex-direction: column; padding: 10px; }
+            .sidebar { width: 100%; height: auto; flex: none; }
+            #tarla-listesi { display: flex; flex-direction: row; overflow-x: auto; gap: 10px; padding-bottom: 5px; }
+            .tarla-item { min-width: 140px; margin-bottom: 0; }
+            .map-container { width: 100%; flex: 1; }
         }
     </style>
 </head>
@@ -56,19 +41,15 @@
     <header>
         <div>
             <h1>AgroSmart <span>| Analiz</span></h1>
-            <div class="subtitle">Gelişmiş Tarım ve Uydu Takip Sistemi</div>
         </div>
-        <div id="hava-durumu">⏳ Hava durumu güncelleniyor...</div>
+        <div id="hava-durumu">Bekleniyor...</div>
     </header>
 
     <div class="container">
         <div class="sidebar">
             <h2>Tarlalarım</h2>
-            <ul id="tarla-listesi">
-                <li class="tarla-item">🔄 Bağlantı kuruluyor...</li>
-            </ul>
+            <ul id="tarla-listesi"><li class="tarla-item">Yükleniyor...</li></ul>
         </div>
-
         <div class="map-container">
             <div id="map"></div>
         </div>
@@ -77,149 +58,103 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
+        // Harita Başlat
         var map = L.map('map').setView([39.0, 35.0], 6);
-
         L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+            maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
 
-        // PC/Windows tarayıcılarının çökmamesi için ESKİ USUL parametre çekme yöntemi
-        function getQueryParam(param) {
-            var query = window.location.search.substring(1);
-            var vars = query.split("&");
-            for (var i = 0; i < vars.length; i++) {
-                var pair = vars[i].split("=");
-                if (pair[0] === param) { return decodeURIComponent(pair[1]); }
-            }
-            return null;
+        // Kullanıcı Adı Çek
+        function getParam(p){
+            var match = RegExp('[?&]' + p + '=([^&]*)').exec(window.location.search);
+            return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
         }
+        var aktifKullanici = getParam('user') || "Misafir";
 
-        var aktifKullanici = getQueryParam('user'); 
-
-        if (!aktifKullanici || aktifKullanici === "") {
-            aktifKullanici = prompt("🌾 Lütfen sistemde kayıtlı Kullanıcı Adınızı giriniz:", "");
-        }
-        if (!aktifKullanici || aktifKullanici === "") {
-            aktifKullanici = "BOS_KULLANICI"; 
-        }
-
-        var isaretciler = {}; 
-
-        function ajaxGet(url, onSuccess, onError) {
+        // Güvenli AJAX (PC Uyumlu)
+        function apiCek(url, callback) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
             xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try {
-                            var data = JSON.parse(xhr.responseText);
-                            onSuccess(data);
-                        } catch(e) { onError(); }
-                    } else { onError(); }
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    callback(JSON.parse(xhr.responseText));
                 }
             };
             xhr.send();
         }
 
-        function havaDurumuGetir(lat, lon, tarlaAdi) {
-            var havaModul = document.getElementById('hava-durumu');
-            havaModul.innerHTML = '⏳ ' + tarlaAdi + ' güncelleniyor...';
-            
-            // Windows Cache sorununu engellemek için url sonuna rastgele sayı (timestamp) ekliyoruz
-            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current_weather=true&_nocache=' + (new Date().getTime());
-            
-            ajaxGet(url, function(data) {
-                var sicaklik = data.current_weather.temperature;
-                var ruzgar = data.current_weather.windspeed;
-                havaModul.innerHTML = '📍 <b>' + tarlaAdi + '</b> | 🌤️ Isı: <b style="color:#4ade80">' + sicaklik + '°C</b> | 💨 Rüzgar: <b>' + ruzgar + ' km/s</b>';
-            }, function() {
-                havaModul.innerHTML = '⚠️ ' + tarlaAdi + ' hava durumu alınamadı';
+        // Hava Durumu (HTTPS Zorlamalı)
+        function havaGetir(lat, lon, isim) {
+            var el = document.getElementById('hava-durumu');
+            el.innerHTML = isim + " aranıyor...";
+            var url = "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current_weather=true";
+            apiCek(url, function(data){
+                var w = data.current_weather;
+                el.innerHTML = "📍 <b>"+isim+"</b> | 🌡️ "+w.temperature+"°C | 💨 "+w.windspeed+"km/s";
             });
         }
 
-        function verileriCek() {
-            var listeDOM = document.getElementById('tarla-listesi');
-            // Windows Cache sorununu engellemek için url sonuna rastgele sayı (timestamp) ekliyoruz
-            var url = 'https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/' + aktifKullanici + '/Tarlalar.json?_nocache=' + (new Date().getTime());
+        // Tarlaları Çek
+        function tarlalariYukle() {
+            var liste = document.getElementById('tarla-listesi');
+            var url = "https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/" + aktifKullanici + "/Tarlalar.json";
+            
+            apiCek(url, function(data){
+                if(!data) { liste.innerHTML = "Tarla yok."; return; }
+                liste.innerHTML = "";
+                var keys = Object.keys(data);
+                keys.forEach(function(k, index){
+                    var t = data[k];
+                    var lat = parseFloat(t.Enlem);
+                    var lon = parseFloat(t.Boylam);
 
-            ajaxGet(url, function(data) {
-                listeDOM.innerHTML = ''; 
-                if (data && data !== "null") {
-                    var isIlkTarlaSecildi = false;
-                    var keys = Object.keys(data);
+                    var m = L.marker([lat, lon]).addTo(map).bindPopup("<b>"+t.TarlaAdi+"</b>");
                     
-                    for(var i=0; i<keys.length; i++) {
-                        (function(key) {
-                            var tarla = data[key];
-                            var enlem = parseFloat(tarla.Enlem) || 39.0;
-                            var boylam = parseFloat(tarla.Boylam) || 35.0;
+                    var li = document.createElement('li');
+                    li.className = "tarla-item";
+                    li.innerHTML = '<div class="tarla-title">'+t.TarlaAdi+'</div><div class="tarla-desc">'+(t.Urun||'Boş')+' | '+t.Buyukluk+'dn</div>';
+                    
+                    li.onclick = function(){
+                        var all = document.querySelectorAll('.tarla-item');
+                        for(var i=0; i<all.length; i++) all[i].className="tarla-item";
+                        li.className="tarla-item active";
 
-                            var marker = L.marker([enlem, boylam]).addTo(map)
-                                .bindPopup('<div style="text-align:center"><b style="color:green; font-size:16px">' + tarla.TarlaAdi + '</b><br>Ekili Ürün: ' + (tarla.Urun || '-') + '<br>Büyüklük: ' + (tarla.Buyukluk || '0') + ' Dönüm</div>');
-                            
-                            isaretciler[key] = marker;
+                        map.flyTo([lat, lon], 16);
+                        m.openPopup();
+                        havaGetir(lat, lon, t.TarlaAdi);
 
-                            var li = document.createElement('li');
-                            li.className = "tarla-item";
-                            li.innerHTML = '<div class="tarla-title">📍 ' + tarla.TarlaAdi + '</div>' +
-                                           '<div class="tarla-desc">🌱 Ürün: ' + (tarla.Urun || 'Belirtilmedi') + '<br>📏 ' + (tarla.Buyukluk || '0') + ' Dönüm</div>';
+                        // NDVI (Garanti Tarih: 12 Gün Önce)
+                        if(window.ndvi) map.removeLayer(window.ndvi);
+                        var d = new Date(); d.setDate(d.getDate() - 12);
+                        var iso = d.toISOString().split('T')[0];
 
-                            li.onclick = function() {
-                                var items = document.querySelectorAll('.tarla-item');
-                                for(var j=0; j<items.length; j++) { items[j].className = "tarla-item"; }
-                                li.className = "tarla-item active";
-
-                                map.flyTo([enlem, boylam], 16, { animate: true, duration: 1.5 });
-                                isaretciler[key].openPopup();
-
-                                havaDurumuGetir(enlem, boylam, tarla.TarlaAdi);
-
-                                if(window.ndviLayer) { map.removeLayer(window.ndviLayer); }
-
-                                var onGunOnce = new Date();
-                                onGunOnce.setDate(onGunOnce.getDate() - 10);
-                                var garantiTarih = onGunOnce.toISOString().split('T')[0];
-
-                                window.ndviLayer = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
-                                    layers: 'MODIS_Terra_NDVI_8Day',
-                                    format: 'image/png',
-                                    transparent: true,
-                                    opacity: 0.7,
-                                    version: '1.1.1',
-                                    time: garantiTarih
-                                }).addTo(map);
-                            };
-
-                            listeDOM.appendChild(li);
-
-                            if (!isIlkTarlaSecildi) { 
-                                li.click(); 
-                                isIlkTarlaSecildi = true; 
-                            }
-                        })(keys[i]);
-                    }
-                } else {
-                    listeDOM.innerHTML = '<li class="tarla-item" style="color:red">Kayıtlı tarla bulunamadı.</li>';
-                }
-            }, function() {
-                listeDOM.innerHTML = '<li class="tarla-item" style="color:red">Bağlantı hatası! İnterneti kontrol edin.</li>';
+                        window.ndvi = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
+                            layers: 'MODIS_Terra_NDVI_8Day',
+                            format: 'image/png',
+                            transparent: true,
+                            opacity: 0.7,
+                            time: iso
+                        }).addTo(map);
+                    };
+                    liste.appendChild(li);
+                    if(index === 0) li.click();
+                });
             });
         }
 
+        // Lejant
         var legend = L.control({position: 'bottomright'});
-        legend.onAdd = function (map) {
+        legend.onAdd = function() {
             var div = L.DomUtil.create('div', 'legend');
-            div.innerHTML = '<h4>NDVI Sağlık Durumu</h4>' +
-                            '<div class="legend-item"><span class="color-box" style="background: #006400"></span> Yüksek Sağlık (Gür)</div>' +
-                            '<div class="legend-item"><span class="color-box" style="background: #78c679"></span> İyi Durumda</div>' +
-                            '<div class="legend-item"><span class="color-box" style="background: #ffffcc"></span> Düşük / Stresli</div>' +
-                            '<div class="legend-item"><span class="color-box" style="background: #d7191c"></span> Çıplak / Ölü</div>';
+            div.innerHTML = '<h4>Bitki Sağlığı</h4>' +
+                '<div class="legend-item"><span class="color-box" style="background:#006400"></span> Gür/Sağlıklı</div>' +
+                '<div class="legend-item"><span class="color-box" style="background:#ffffcc"></span> Orta/Stresli</div>' +
+                '<div class="legend-item"><span class="color-box" style="background:#d7191c"></span> Toprak/Ölü</div>';
             return div;
         };
-
         legend.addTo(map);
-        verileriCek();
+
+        tarlalariYukle();
     </script>
 </body>
 </html>
