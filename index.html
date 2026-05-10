@@ -2,6 +2,8 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgroSmart Web Analiz Merkezi</title>
     
@@ -48,7 +50,7 @@
 
     <script>
         // 1. HARİTAYI BAŞLAT
-        const map = L.map('map').setView([39.0, 35.0], 6);
+        var map = L.map('map').setView([39.0, 35.0], 6);
 
         // 2. GOOGLE UYDU GÖRÜNTÜSÜ
         L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
@@ -58,8 +60,8 @@
 
         // =========================================================
         // DİNAMİK KULLANICI GİRİŞ MOTORU
-        const urlParams = new URLSearchParams(window.location.search);
-        let aktifKullanici = urlParams.get('user'); 
+        var urlParams = new URLSearchParams(window.location.search);
+        var aktifKullanici = urlParams.get('user'); 
 
         if (!aktifKullanici || aktifKullanici.trim() === "") {
             aktifKullanici = prompt("🌾 AgroSmart Analiz Merkezi\n\nLütfen sistemde kayıtlı Kullanıcı Adınızı giriniz:", "");
@@ -73,118 +75,120 @@
         aktifKullanici = aktifKullanici.trim();
         // =========================================================
 
-        let isaretciler = {}; 
+        var isaretciler = {}; 
 
-        // 3. FİREBASE'DEN TARLALARI ÇEK
-        async function verileriCek() {
-            const listeDOM = document.getElementById('tarla-listesi');
+        // 3. FİREBASE'DEN TARLALARI ÇEK (ESKİ BİLGİSAYARLAR İÇİN GÜVENLİ FORMAT)
+        function verileriCek() {
+            var listeDOM = document.getElementById('tarla-listesi');
             listeDOM.innerHTML = '<li class="p-3 bg-gray-50 rounded-lg text-gray-500 text-sm animate-pulse">Veriler Firebase\'den çekiliyor...</li>';
 
-            try {
-                const url = `https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/${aktifKullanici}/Tarlalar.json`;
-                const response = await fetch(url);
-                const data = await response.json();
+            var url = 'https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/' + aktifKullanici + '/Tarlalar.json';
 
-                listeDOM.innerHTML = ''; 
+            fetch(url)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    listeDOM.innerHTML = ''; 
 
-                if (data && data !== "null") {
-                    Object.keys(data).forEach((key, index) => {
-                        const tarla = data[key];
-                        const enlem = parseFloat(tarla.Enlem) || 39.0;
-                        const boylam = parseFloat(tarla.Boylam) || 35.0;
+                    if (data && data !== "null") {
+                        var isIlkTarlaSecildi = false;
+                        Object.keys(data).forEach(function(key) {
+                            var tarla = data[key];
+                            var enlem = parseFloat(tarla.Enlem) || 39.0;
+                            var boylam = parseFloat(tarla.Boylam) || 35.0;
 
-                        // HARİTAYA PİN EKLE
-                        const marker = L.marker([enlem, boylam]).addTo(map)
-                            .bindPopup(`<div class="text-center"><b class="text-green-700 text-lg">${tarla.TarlaAdi}</b><br>Ekili Ürün: ${tarla.Urun || '-'}<br>Büyüklük: ${tarla.Buyukluk || '0'} Dönüm</div>`);
-                        
-                        isaretciler[key] = marker;
-
-                        // SOL MENÜ İÇİN LİSTE ELEMANI OLUŞTUR
-                        const li = document.createElement('li');
-                        li.className = "tarla-item p-3 bg-white rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md hover:border-green-400 cursor-pointer transition duration-200";
-                        li.innerHTML = `
-                            <div class="font-bold text-gray-800 text-base">📍 ${tarla.TarlaAdi}</div>
-                            <div class="text-xs text-gray-500 mt-1 font-medium">🌱 Ürün: <span class="text-gray-700">${tarla.Urun || 'Belirtilmedi'}</span> | 📏 ${tarla.Buyukluk || '0'} Dönüm</div>
-                        `;
-
-                        // TIKLAMA OLAYI
-                        li.onclick = () => {
-                            document.querySelectorAll('.tarla-item').forEach(el => {
-                                el.classList.remove('border-green-500', 'bg-green-50');
-                                el.classList.add('border-gray-200', 'bg-white');
-                            });
+                            // HARİTAYA PİN EKLE
+                            var marker = L.marker([enlem, boylam]).addTo(map)
+                                .bindPopup('<div class="text-center"><b class="text-green-700 text-lg">' + tarla.TarlaAdi + '</b><br>Ekili Ürün: ' + (tarla.Urun || '-') + '<br>Büyüklük: ' + (tarla.Buyukluk || '0') + ' Dönüm</div>');
                             
-                            li.classList.remove('border-gray-200', 'bg-white');
-                            li.classList.add('border-green-500', 'bg-green-50');
+                            isaretciler[key] = marker;
 
-                            map.flyTo([enlem, boylam], 16, { animate: true, duration: 1.5 });
-                            isaretciler[key].openPopup();
+                            // SOL MENÜ İÇİN LİSTE ELEMANI OLUŞTUR
+                            var li = document.createElement('li');
+                            li.className = "tarla-item p-3 bg-white rounded-lg border-2 border-gray-200 shadow-sm hover:shadow-md hover:border-green-400 cursor-pointer transition duration-200";
+                            li.innerHTML = '<div class="font-bold text-gray-800 text-base">📍 ' + tarla.TarlaAdi + '</div>' +
+                                           '<div class="text-xs text-gray-500 mt-1 font-medium">🌱 Ürün: <span class="text-gray-700">' + (tarla.Urun || 'Belirtilmedi') + '</span> | 📏 ' + (tarla.Buyukluk || '0') + ' Dönüm</div>';
 
-                            havaDurumuGetir(enlem, boylam, tarla.TarlaAdi);
+                            // TIKLAMA OLAYI
+                            li.onclick = function() {
+                                document.querySelectorAll('.tarla-item').forEach(function(el) {
+                                    el.classList.remove('border-green-500', 'bg-green-50');
+                                    el.classList.add('border-gray-200', 'bg-white');
+                                });
+                                
+                                li.classList.remove('border-gray-200', 'bg-white');
+                                li.classList.add('border-green-500', 'bg-green-50');
 
-                            // NDVI KATMANINI GÜNCELLE (10 Gün Öncesinin Garanti Verisi)
-                            if(window.ndviLayer) {
-                                map.removeLayer(window.ndviLayer); 
+                                map.flyTo([enlem, boylam], 16, { animate: true, duration: 1.5 });
+                                isaretciler[key].openPopup();
+
+                                havaDurumuGetir(enlem, boylam, tarla.TarlaAdi);
+
+                                // NDVI KATMANINI GÜNCELLE
+                                if(window.ndviLayer) {
+                                    map.removeLayer(window.ndviLayer); 
+                                }
+
+                                var onGunOnce = new Date();
+                                onGunOnce.setDate(onGunOnce.getDate() - 10);
+                                var garantiTarih = onGunOnce.toISOString().split('T')[0];
+
+                                window.ndviLayer = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
+                                    layers: 'MODIS_Terra_NDVI_8Day',
+                                    format: 'image/png',
+                                    transparent: true,
+                                    opacity: 0.7,
+                                    version: '1.1.1',
+                                    time: garantiTarih
+                                }).addTo(map);
+                            };
+
+                            listeDOM.appendChild(li);
+
+                            if (!isIlkTarlaSecildi) { 
+                                li.click(); 
+                                isIlkTarlaSecildi = true; 
                             }
-
-                            const onGunOnce = new Date();
-                            onGunOnce.setDate(onGunOnce.getDate() - 10);
-                            const garantiTarih = onGunOnce.toISOString().split('T')[0];
-
-                            window.ndviLayer = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
-                                layers: 'MODIS_Terra_NDVI_8Day',
-                                format: 'image/png',
-                                transparent: true,
-                                opacity: 0.7,
-                                version: '1.1.1',
-                                time: garantiTarih
-                            }).addTo(map);
-                        };
-
-                        listeDOM.appendChild(li);
-
-                        if (index === 0) { li.click(); }
-                    });
-
-                } else {
-                    listeDOM.innerHTML = '<li class="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">Kayıtlı tarla bulunamadı.</li>';
-                    document.getElementById('hava-durumu').innerHTML = `⚠️ Konum verisi yok`;
-                }
-            } catch (error) {
-                console.error("Hata:", error);
-                listeDOM.innerHTML = '<li class="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-bold">Veritabanına bağlanılamadı! İnternetinizi kontrol edin.</li>';
-            }
+                        });
+                    } else {
+                        listeDOM.innerHTML = '<li class="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">Kayıtlı tarla bulunamadı.</li>';
+                        document.getElementById('hava-durumu').innerHTML = '⚠️ Konum verisi yok';
+                    }
+                })
+                .catch(function(error) {
+                    console.error("Hata:", error);
+                    listeDOM.innerHTML = '<li class="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg font-bold">Veritabanına bağlanılamadı! İnternetinizi kontrol edin.</li>';
+                });
         }
 
-        // 4. CANLI HAVA DURUMU
-        async function havaDurumuGetir(lat, lon, tarlaAdi) {
-            const havaModul = document.getElementById('hava-durumu');
-            havaModul.innerHTML = `⏳ ${tarlaAdi} güncelleniyor...`;
+        // 4. CANLI HAVA DURUMU (ESKİ BİLGİSAYARLAR İÇİN GÜVENLİ FORMAT)
+        function havaDurumuGetir(lat, lon, tarlaAdi) {
+            var havaModul = document.getElementById('hava-durumu');
+            havaModul.innerHTML = '⏳ ' + tarlaAdi + ' güncelleniyor...';
             
-            try {
-                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
-                const data = await response.json();
-                const sicaklik = data.current_weather.temperature;
-                const ruzgar = data.current_weather.windspeed;
-                
-                havaModul.innerHTML = `📍 <b>${tarlaAdi}</b> | 🌤️ Isı: <b class="text-green-400">${sicaklik}°C</b> | 💨 Rüzgar: <b>${ruzgar} km/s</b>`;
-            } catch(e) {
-                havaModul.innerHTML = `⚠️ ${tarlaAdi} bölgesine ulaşılamadı`;
-            }
+            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current_weather=true';
+            
+            fetch(url)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    var sicaklik = data.current_weather.temperature;
+                    var ruzgar = data.current_weather.windspeed;
+                    havaModul.innerHTML = '📍 <b>' + tarlaAdi + '</b> | 🌤️ Isı: <b class="text-green-400">' + sicaklik + '°C</b> | 💨 Rüzgar: <b>' + ruzgar + ' km/s</b>';
+                })
+                .catch(function(e) {
+                    havaModul.innerHTML = '⚠️ ' + tarlaAdi + ' bölgesine ulaşılamadı';
+                });
         }
 
         // 5. HARİTAYA NDVI LEJANTI EKLE
-        const legend = L.control({position: 'bottomright'});
+        var legend = L.control({position: 'bottomright'});
 
         legend.onAdd = function (map) {
-            const div = L.DomUtil.create('div', 'info legend bg-white p-3 rounded-lg shadow-md border border-gray-200 text-sm');
-            div.innerHTML = `
-                <h4 class="font-bold text-gray-800 mb-2 border-b border-gray-200 pb-1">NDVI Sağlık Durumu</h4>
-                <div class="flex items-center mb-1"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #006400"></span> Yüksek Sağlık (Gür)</div>
-                <div class="flex items-center mb-1"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #78c679"></span> İyi Durumda</div>
-                <div class="flex items-center mb-1"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #ffffcc"></span> Düşük / Stresli Bitki</div>
-                <div class="flex items-center"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #d7191c"></span> Çıplak Toprak / Ölü</div>
-            `;
+            var div = L.DomUtil.create('div', 'info legend bg-white p-3 rounded-lg shadow-md border border-gray-200 text-sm');
+            div.innerHTML = '<h4 class="font-bold text-gray-800 mb-2 border-b border-gray-200 pb-1">NDVI Sağlık Durumu</h4>' +
+                            '<div class="flex items-center mb-1"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #006400"></span> Yüksek Sağlık (Gür)</div>' +
+                            '<div class="flex items-center mb-1"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #78c679"></span> İyi Durumda</div>' +
+                            '<div class="flex items-center mb-1"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #ffffcc"></span> Düşük / Stresli Bitki</div>' +
+                            '<div class="flex items-center"><span class="w-4 h-4 inline-block mr-2 rounded" style="background: #d7191c"></span> Çıplak Toprak / Ölü</div>';
             return div;
         };
 
