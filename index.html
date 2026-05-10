@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AgroSmart Analiz</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -10,7 +11,6 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f1f5f9; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         header { background-color: #0f172a; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; }
         h1 { margin: 0; font-size: 22px; color: #4ade80; }
-        h1 span { color: white; font-weight: 300; }
         #hava-durumu { background-color: #1e293b; padding: 8px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 14px; min-width: 200px; text-align: center; }
         .container { display: flex; flex: 1; padding: 20px; gap: 20px; box-sizing: border-box; overflow: hidden; }
         .sidebar { width: 25%; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
@@ -39,10 +39,8 @@
 <body>
 
     <header>
-        <div>
-            <h1>AgroSmart <span>| Analiz</span></h1>
-        </div>
-        <div id="hava-durumu">Bekleniyor...</div>
+        <div><h1>AgroSmart <span>| Analiz</span></h1></div>
+        <div id="hava-durumu">Veri bekleniyor...</div>
     </header>
 
     <div class="container">
@@ -58,117 +56,100 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Harita Başlat
         var map = L.map('map').setView([39.0, 35.0], 6);
-        L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
             maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
 
-        // Kullanıcı Adı Çek
         function getParam(p){
             var match = RegExp('[?&]' + p + '=([^&]*)').exec(window.location.search);
             return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
         }
         var aktifKullanici = getParam('user') || "Misafir";
 
-        // GÜÇLENDİRİLMİŞ AJAX (Hata Yakalama Özellikli)
+        // GÜÇLENDİRİLMİŞ API ÇEKİCİ (CORS VE GÜVENLİK İÇİN)
         function apiCek(url, onSuccess, onError) {
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', url, true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try { onSuccess(JSON.parse(xhr.responseText)); } 
-                        catch(e) { if(onError) onError(); }
-                    } else {
-                        if(onError) onError();
+            try {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', url, true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            onSuccess(JSON.parse(xhr.responseText));
+                        } else {
+                            if(onError) onError("Durum: " + xhr.status);
+                        }
                     }
-                }
-            };
-            xhr.onerror = function() { if(onError) onError(); };
-            xhr.send();
+                };
+                xhr.onerror = function() { if(onError) onError("İstek Başarısız"); };
+                xhr.send();
+            } catch(e) { if(onError) onError("Hata: " + e.message); }
         }
 
-        // Hava Durumu (Hata Yakalamalı)
         function havaGetir(lat, lon, isim) {
             var el = document.getElementById('hava-durumu');
             el.innerHTML = "⏳ " + isim + " aranıyor...";
-            var url = "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current_weather=true&_t=" + (new Date().getTime());
+            // URL'ye HTTPS zorlaması ve zaman damgası ekledik
+            var url = "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current_weather=true&ts=" + new Date().getTime();
             
             apiCek(url, function(data){
                 if(data && data.current_weather) {
                     var w = data.current_weather;
                     el.innerHTML = "📍 <b>"+isim+"</b> | 🌡️ "+w.temperature+"°C | 💨 "+w.windspeed+"km/s";
-                } else {
-                    el.innerHTML = "⚠️ " + isim + " hava verisi okunamadı";
                 }
-            }, function() {
-                el.innerHTML = "⚠️ Cihaz hava durumu servisini engelledi";
+            }, function(err) {
+                el.innerHTML = "⚠️ Hava durumu alınamadı";
+                console.log("Hava Hatası:", err);
             });
         }
 
-        // Tarlaları Çek
         function tarlalariYukle() {
             var liste = document.getElementById('tarla-listesi');
-            var url = "https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/" + aktifKullanici + "/Tarlalar.json?_t=" + (new Date().getTime());
+            var url = "https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/" + aktifKullanici + "/Tarlalar.json";
             
             apiCek(url, function(data){
-                if(!data || data === "null") { liste.innerHTML = '<li class="tarla-item" style="color:red">Tarla bulunamadı.</li>'; return; }
+                if(!data || data === "null") { liste.innerHTML = '<li class="tarla-item">Tarla bulunamadı.</li>'; return; }
                 liste.innerHTML = "";
                 var keys = Object.keys(data);
                 keys.forEach(function(k, index){
                     var t = data[k];
                     var lat = parseFloat(t.Enlem) || 39.0;
                     var lon = parseFloat(t.Boylam) || 35.0;
-
                     var m = L.marker([lat, lon]).addTo(map).bindPopup("<b>"+t.TarlaAdi+"</b>");
-                    
                     var li = document.createElement('li');
                     li.className = "tarla-item";
-                    li.innerHTML = '<div class="tarla-title">'+t.TarlaAdi+'</div><div class="tarla-desc">'+(t.Urun||'Boş')+' | '+t.Buyukluk+'dn</div>';
-                    
+                    li.innerHTML = '<div class="tarla-title">'+t.TarlaAdi+'</div><div class="tarla-desc">'+(t.Urun||'Boş')+' | '+(t.Buyukluk||'0')+'dn</div>';
                     li.onclick = function(){
                         var all = document.querySelectorAll('.tarla-item');
                         for(var i=0; i<all.length; i++) all[i].className="tarla-item";
                         li.className="tarla-item active";
-
                         map.flyTo([lat, lon], 16);
                         m.openPopup();
                         havaGetir(lat, lon, t.TarlaAdi);
-
-                        // NDVI (Garanti Tarih: Tam 15 Gün Önce)
                         if(window.ndvi) map.removeLayer(window.ndvi);
-                        var d = new Date(); d.setDate(d.getDate() - 15);
+                        var d = new Date(); d.setDate(d.getDate() - 15); // En sağlam tarih
                         var iso = d.toISOString().split('T')[0];
-
                         window.ndvi = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
                             layers: 'MODIS_Terra_NDVI_8Day',
-                            format: 'image/png',
-                            transparent: true,
-                            opacity: 0.7,
-                            time: iso
+                            format: 'image/png', transparent: true, opacity: 0.7, time: iso
                         }).addTo(map);
                     };
                     liste.appendChild(li);
                     if(index === 0) li.click();
                 });
-            }, function() {
-                liste.innerHTML = '<li class="tarla-item" style="color:red">Bağlantı hatası!</li>';
             });
         }
 
-        // Lejant
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function() {
             var div = L.DomUtil.create('div', 'legend');
             div.innerHTML = '<h4>Bitki Sağlığı</h4>' +
-                '<div class="legend-item"><span class="color-box" style="background:#006400"></span> Gür/Sağlıklı</div>' +
-                '<div class="legend-item"><span class="color-box" style="background:#ffffcc"></span> Orta/Stresli</div>' +
-                '<div class="legend-item"><span class="color-box" style="background:#d7191c"></span> Toprak/Ölü</div>';
+                '<div class="legend-item"><span class="color-box" style="background:#006400"></span> Sağlıklı</div>' +
+                '<div class="legend-item"><span class="color-box" style="background:#ffffcc"></span> Stresli</div>' +
+                '<div class="legend-item"><span class="color-box" style="background:#d7191c"></span> Ölü/Toprak</div>';
             return div;
         };
         legend.addTo(map);
-
         tarlalariYukle();
     </script>
 </body>
