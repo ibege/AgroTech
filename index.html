@@ -11,16 +11,16 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f1f5f9; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         header { background-color: #0f172a; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; }
         h1 { margin: 0; font-size: 22px; color: #4ade80; }
-        #hava-durumu { background-color: #1e293b; padding: 8px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 14px; min-width: 200px; text-align: center; }
+        #hava-durumu { background-color: #1e293b; padding: 8px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 14px; min-width: 200px; text-align: center; color: #fff; }
         .container { display: flex; flex: 1; padding: 20px; gap: 20px; box-sizing: border-box; overflow: hidden; }
         .sidebar { width: 25%; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
         .sidebar h2 { margin-top: 0; border-bottom: 2px solid #22c55e; padding-bottom: 10px; color: #1e293b; font-size: 18px; }
         #tarla-listesi { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
-        .tarla-item { padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+        .tarla-item { padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; }
         .tarla-item.active { border-color: #4ade80; background: #f0fdf4; box-shadow: inset 0 0 0 1px #4ade80; }
-        .tarla-title { font-weight: bold; color: #1e293b; font-size: 15px; margin-bottom: 5px; }
+        .tarla-title { font-weight: bold; color: #1e293b; font-size: 15px; }
         .tarla-desc { font-size: 12px; color: #64748b; }
-        .map-container { width: 75%; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; position: relative; display: flex; flex-direction: column; }
+        .map-container { width: 75%; background: white; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; position: relative; display: flex; flex-direction: column; }
         #map { flex: 1; width: 100%; border-radius: 8px; z-index: 1; background: #e5e7eb; }
         .legend { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; font-size: 12px; color: #334155; }
         .legend-item { display: flex; align-items: center; margin-bottom: 3px; }
@@ -67,58 +67,63 @@
         }
         var aktifKullanici = getParam('user') || "Misafir";
 
-        // GÜÇLENDİRİLMİŞ API ÇEKİCİ (CORS VE GÜVENLİK İÇİN)
+        // YEDEKLEMELİ API ÇEKİCİ
         function apiCek(url, onSuccess, onError) {
-            try {
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', url, true);
-                xhr.onreadystatechange = function() {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status === 200) {
-                            onSuccess(JSON.parse(xhr.responseText));
-                        } else {
-                            if(onError) onError("Durum: " + xhr.status);
-                        }
-                    }
-                };
-                xhr.onerror = function() { if(onError) onError("İstek Başarısız"); };
-                xhr.send();
-            } catch(e) { if(onError) onError("Hata: " + e.message); }
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try { onSuccess(JSON.parse(xhr.responseText)); } 
+                        catch(e) { if(onError) onError("Veri hatası"); }
+                    } else { if(onError) onError("Cihaz reddetti (" + xhr.status + ")"); }
+                }
+            };
+            xhr.onerror = function() { if(onError) onError("İstek başarısız"); };
+            xhr.send();
         }
 
         function havaGetir(lat, lon, isim) {
             var el = document.getElementById('hava-durumu');
-            el.innerHTML = "⏳ " + isim + " aranıyor...";
-            // URL'ye HTTPS zorlaması ve zaman damgası ekledik
-            var url = "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current_weather=true&ts=" + new Date().getTime();
+            el.innerHTML = "⏳ " + isim + "...";
+            
+            // ANA URL
+            var url = "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current_weather=true";
             
             apiCek(url, function(data){
                 if(data && data.current_weather) {
                     var w = data.current_weather;
-                    el.innerHTML = "📍 <b>"+isim+"</b> | 🌡️ "+w.temperature+"°C | 💨 "+w.windspeed+"km/s";
+                    el.innerHTML = "📍 <b>"+isim+"</b> | 🌡️ <span style='color:#4ade80'>"+w.temperature+"°C</span> | 💨 "+w.windspeed+"km/s";
                 }
             }, function(err) {
-                el.innerHTML = "⚠️ Hava durumu alınamadı";
-                console.log("Hava Hatası:", err);
+                // EĞER İLK İSTEK ENGELLENİRSE PROXY ÜZERİNDEN DENE
+                console.log("Normal yol engellendi, proxy deneniyor...");
+                var proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+                
+                apiCek(proxyUrl, function(proxyData){
+                    var realData = JSON.parse(proxyData.contents);
+                    var w = realData.current_weather;
+                    el.innerHTML = "📍 <b>"+isim+"</b> | 🌡️ <span style='color:#4ade80'>"+w.temperature+"°C</span> | 💨 "+w.windspeed+"km/s";
+                }, function(proxyErr) {
+                    el.innerHTML = "⚠️ " + isim + " hava durumu engellendi";
+                });
             });
         }
 
         function tarlalariYukle() {
             var liste = document.getElementById('tarla-listesi');
-            var url = "https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/" + aktifKullanici + "/Tarlalar.json";
+            var url = "https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/" + aktifKullanici + "/Tarlalar.json?v=" + new Date().getTime();
             
             apiCek(url, function(data){
                 if(!data || data === "null") { liste.innerHTML = '<li class="tarla-item">Tarla bulunamadı.</li>'; return; }
                 liste.innerHTML = "";
-                var keys = Object.keys(data);
-                keys.forEach(function(k, index){
+                Object.keys(data).forEach(function(k, index){
                     var t = data[k];
-                    var lat = parseFloat(t.Enlem) || 39.0;
-                    var lon = parseFloat(t.Boylam) || 35.0;
+                    var lat = parseFloat(t.Enlem); var lon = parseFloat(t.Boylam);
                     var m = L.marker([lat, lon]).addTo(map).bindPopup("<b>"+t.TarlaAdi+"</b>");
                     var li = document.createElement('li');
                     li.className = "tarla-item";
-                    li.innerHTML = '<div class="tarla-title">'+t.TarlaAdi+'</div><div class="tarla-desc">'+(t.Urun||'Boş')+' | '+(t.Buyukluk||'0')+'dn</div>';
+                    li.innerHTML = '<div class="tarla-title">📍 '+t.TarlaAdi+'</div><div class="tarla-desc">'+(t.Urun||'Boş')+' | '+(t.Buyukluk||'0')+'dn</div>';
                     li.onclick = function(){
                         var all = document.querySelectorAll('.tarla-item');
                         for(var i=0; i<all.length; i++) all[i].className="tarla-item";
@@ -126,8 +131,9 @@
                         map.flyTo([lat, lon], 16);
                         m.openPopup();
                         havaGetir(lat, lon, t.TarlaAdi);
+                        
                         if(window.ndvi) map.removeLayer(window.ndvi);
-                        var d = new Date(); d.setDate(d.getDate() - 15); // En sağlam tarih
+                        var d = new Date(); d.setDate(d.getDate() - 15);
                         var iso = d.toISOString().split('T')[0];
                         window.ndvi = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
                             layers: 'MODIS_Terra_NDVI_8Day',
