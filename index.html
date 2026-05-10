@@ -71,42 +71,55 @@
         }
         var aktifKullanici = getParam('user') || "Misafir";
 
-        // Güvenli AJAX (PC Uyumlu)
-        function apiCek(url, callback) {
+        // GÜÇLENDİRİLMİŞ AJAX (Hata Yakalama Özellikli)
+        function apiCek(url, onSuccess, onError) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
             xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4 && xhr.status === 200) {
-                    callback(JSON.parse(xhr.responseText));
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try { onSuccess(JSON.parse(xhr.responseText)); } 
+                        catch(e) { if(onError) onError(); }
+                    } else {
+                        if(onError) onError();
+                    }
                 }
             };
+            xhr.onerror = function() { if(onError) onError(); };
             xhr.send();
         }
 
-        // Hava Durumu (HTTPS Zorlamalı)
+        // Hava Durumu (Hata Yakalamalı)
         function havaGetir(lat, lon, isim) {
             var el = document.getElementById('hava-durumu');
-            el.innerHTML = isim + " aranıyor...";
-            var url = "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current_weather=true";
+            el.innerHTML = "⏳ " + isim + " aranıyor...";
+            var url = "https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current_weather=true&_t=" + (new Date().getTime());
+            
             apiCek(url, function(data){
-                var w = data.current_weather;
-                el.innerHTML = "📍 <b>"+isim+"</b> | 🌡️ "+w.temperature+"°C | 💨 "+w.windspeed+"km/s";
+                if(data && data.current_weather) {
+                    var w = data.current_weather;
+                    el.innerHTML = "📍 <b>"+isim+"</b> | 🌡️ "+w.temperature+"°C | 💨 "+w.windspeed+"km/s";
+                } else {
+                    el.innerHTML = "⚠️ " + isim + " hava verisi okunamadı";
+                }
+            }, function() {
+                el.innerHTML = "⚠️ Cihaz hava durumu servisini engelledi";
             });
         }
 
         // Tarlaları Çek
         function tarlalariYukle() {
             var liste = document.getElementById('tarla-listesi');
-            var url = "https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/" + aktifKullanici + "/Tarlalar.json";
+            var url = "https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/" + aktifKullanici + "/Tarlalar.json?_t=" + (new Date().getTime());
             
             apiCek(url, function(data){
-                if(!data) { liste.innerHTML = "Tarla yok."; return; }
+                if(!data || data === "null") { liste.innerHTML = '<li class="tarla-item" style="color:red">Tarla bulunamadı.</li>'; return; }
                 liste.innerHTML = "";
                 var keys = Object.keys(data);
                 keys.forEach(function(k, index){
                     var t = data[k];
-                    var lat = parseFloat(t.Enlem);
-                    var lon = parseFloat(t.Boylam);
+                    var lat = parseFloat(t.Enlem) || 39.0;
+                    var lon = parseFloat(t.Boylam) || 35.0;
 
                     var m = L.marker([lat, lon]).addTo(map).bindPopup("<b>"+t.TarlaAdi+"</b>");
                     
@@ -123,9 +136,9 @@
                         m.openPopup();
                         havaGetir(lat, lon, t.TarlaAdi);
 
-                        // NDVI (Garanti Tarih: 12 Gün Önce)
+                        // NDVI (Garanti Tarih: Tam 15 Gün Önce)
                         if(window.ndvi) map.removeLayer(window.ndvi);
-                        var d = new Date(); d.setDate(d.getDate() - 12);
+                        var d = new Date(); d.setDate(d.getDate() - 15);
                         var iso = d.toISOString().split('T')[0];
 
                         window.ndvi = L.tileLayer.wms('https://gibs.earthdata.nasa.gov/wms/epsg3857/best/wms.cgi', {
@@ -139,6 +152,8 @@
                     liste.appendChild(li);
                     if(index === 0) li.click();
                 });
+            }, function() {
+                liste.innerHTML = '<li class="tarla-item" style="color:red">Bağlantı hatası!</li>';
             });
         }
 
