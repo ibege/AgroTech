@@ -11,55 +11,40 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f1f5f9; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* HEADER TASARIMI */
         header { background-color: #0f172a; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 10; }
         h1 { margin: 0; font-size: 22px; color: #4ade80; }
         h1 span { color: white; font-weight: 300; }
         .subtitle { font-size: 12px; color: #94a3b8; margin-top: 4px; }
         #hava-durumu { background-color: #1e293b; padding: 8px 15px; border-radius: 8px; border: 1px solid #334155; font-size: 14px; }
         
-        /* ANA TAŞIYICI */
         .container { display: flex; flex: 1; padding: 20px; gap: 20px; box-sizing: border-box; overflow: hidden; }
         
-        /* SOL MENÜ (PC İÇİN) */
         .sidebar { width: 25%; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; display: flex; flex-direction: column; }
         .sidebar h2 { margin-top: 0; border-bottom: 2px solid #22c55e; padding-bottom: 10px; color: #1e293b; font-size: 18px; }
         #tarla-listesi { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
         
-        /* KART TASARIMI */
         .tarla-item { padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
         .tarla-item:hover, .tarla-item.active { border-color: #4ade80; background: #f0fdf4; }
         .tarla-title { font-weight: bold; color: #1e293b; font-size: 15px; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .tarla-desc { font-size: 12px; color: #64748b; }
         
-        /* HARİTA ALANI */
         .map-container { width: 75%; background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; position: relative; display: flex; flex-direction: column; }
         #map { flex: 1; width: 100%; border-radius: 8px; z-index: 1; }
         
-        /* LEJANT (BİLGİ KUTUSU) */
         .legend { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; font-size: 12px; line-height: 18px; color: #334155; }
         .legend h4 { margin: 0 0 5px 0; font-weight: bold; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;}
         .legend-item { display: flex; align-items: center; margin-bottom: 3px; }
         .color-box { width: 14px; height: 14px; margin-right: 8px; border-radius: 3px; display: inline-block;}
 
-        /* ================================================================= */
-        /* MOBİL EKRANLAR İÇİN KUSURSUZ TASARIM (MAX GENİŞLİK 768px) */
-        /* ================================================================= */
         @media (max-width: 768px) {
             header { flex-direction: column; align-items: flex-start; padding: 12px 15px; gap: 10px; }
             #hava-durumu { width: 100%; text-align: center; box-sizing: border-box; font-size: 13px; }
-            
             .container { flex-direction: column; padding: 10px; gap: 10px; }
-            
-            /* Tarlalarım menüsü mobilde haritanın üstünde yatay kaydırmalı olur */
             .sidebar { width: 100%; padding: 10px; flex: none; height: auto; box-sizing: border-box; }
             .sidebar h2 { font-size: 16px; margin-bottom: 10px; padding-bottom: 5px; }
             #tarla-listesi { display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 10px; padding-bottom: 5px; }
             .tarla-item { min-width: 150px; flex: 0 0 auto; margin-bottom: 0; }
-            
             .map-container { width: 100%; padding: 5px; box-sizing: border-box; flex: 1; }
-            
-            /* Lejant küçültüldü ki haritayı kapatmasın */
             .legend { font-size: 10px; padding: 6px; }
             .legend h4 { font-size: 11px; margin-bottom: 3px; padding-bottom: 3px; }
             .color-box { width: 10px; height: 10px; margin-right: 5px; }
@@ -92,7 +77,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // ESKİ NESİL BİLGİSAYARLAR İÇİN UYUMLU ES5 JAVASCRIPT MOTORU
         var map = L.map('map').setView([39.0, 35.0], 6);
 
         L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
@@ -100,20 +84,28 @@
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
         }).addTo(map);
 
-        var urlParams = new URLSearchParams(window.location.search);
-        var aktifKullanici = urlParams.get('user'); 
+        // PC/Windows tarayıcılarının çökmamesi için ESKİ USUL parametre çekme yöntemi
+        function getQueryParam(param) {
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                if (pair[0] === param) { return decodeURIComponent(pair[1]); }
+            }
+            return null;
+        }
 
-        if (!aktifKullanici || aktifKullanici.trim() === "") {
+        var aktifKullanici = getQueryParam('user'); 
+
+        if (!aktifKullanici || aktifKullanici === "") {
             aktifKullanici = prompt("🌾 Lütfen sistemde kayıtlı Kullanıcı Adınızı giriniz:", "");
         }
-        if (!aktifKullanici || aktifKullanici.trim() === "") {
+        if (!aktifKullanici || aktifKullanici === "") {
             aktifKullanici = "BOS_KULLANICI"; 
         }
-        aktifKullanici = aktifKullanici.trim();
 
         var isaretciler = {}; 
 
-        // HAYAT KURTARAN ESKİ NESİL (IE UYUMLU) VERİ ÇEKME FONKSİYONU
         function ajaxGet(url, onSuccess, onError) {
             var xhr = new XMLHttpRequest();
             xhr.open('GET', url, true);
@@ -130,11 +122,12 @@
             xhr.send();
         }
 
-        // HAVA DURUMU GÜNCELLEMESİ
         function havaDurumuGetir(lat, lon, tarlaAdi) {
             var havaModul = document.getElementById('hava-durumu');
             havaModul.innerHTML = '⏳ ' + tarlaAdi + ' güncelleniyor...';
-            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current_weather=true';
+            
+            // Windows Cache sorununu engellemek için url sonuna rastgele sayı (timestamp) ekliyoruz
+            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current_weather=true&_nocache=' + (new Date().getTime());
             
             ajaxGet(url, function(data) {
                 var sicaklik = data.current_weather.temperature;
@@ -145,10 +138,10 @@
             });
         }
 
-        // TARLALARI FİREBASE'DEN ÇEKME
         function verileriCek() {
             var listeDOM = document.getElementById('tarla-listesi');
-            var url = 'https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/' + aktifKullanici + '/Tarlalar.json';
+            // Windows Cache sorununu engellemek için url sonuna rastgele sayı (timestamp) ekliyoruz
+            var url = 'https://agrosmart-erp-default-rtdb.europe-west1.firebasedatabase.app/Kullanicilar/' + aktifKullanici + '/Tarlalar.json?_nocache=' + (new Date().getTime());
 
             ajaxGet(url, function(data) {
                 listeDOM.innerHTML = ''; 
@@ -214,7 +207,6 @@
             });
         }
 
-        // HARİTAYA NDVI LEJANTI EKLE
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'legend');
