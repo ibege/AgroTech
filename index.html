@@ -124,6 +124,7 @@
                     var li = document.createElement('li');
                     li.className = "tarla-item";
                     li.innerHTML = '<div class="tarla-title">📍 '+t.TarlaAdi+'</div><div class="tarla-desc">'+(t.Urun||'Boş')+' | '+(t.Buyukluk||'0')+'dn</div>';
+                    
                     li.onclick = function(){
                         var all = document.querySelectorAll('.tarla-item');
                         for(var i=0; i<all.length; i++) all[i].className="tarla-item";
@@ -139,7 +140,16 @@
                             layers: 'MODIS_Terra_NDVI_8Day',
                             format: 'image/png', transparent: true, opacity: 0.7, time: iso
                         }).addTo(map);
+
+                        // CLOMOSY İÇİN SİHİRLİ KÖPRÜ (Sensörleri Tetikler)
+                        document.title = t.TarlaAdi;
                     };
+
+                    // Haritadaki iğneye tıklanınca da menüdeki tıklama fonksiyonunu çalıştır
+                    m.on('click', function() {
+                        li.click();
+                    });
+
                     liste.appendChild(li);
                     if(index === 0) li.click();
                 });
